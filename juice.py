@@ -96,7 +96,7 @@ def justified_search(x,x_label,nn_cf,model,data,priority):
         """
         vector = x - closest_to_x
         closest_to_x_cost = cost(x,closest_to_x,data.feat_cost)
-        directionality_condition = ((vector > 0) & (data.feat_dir == 'pos') | (vector < 0) & (data.feat_dir == 'neg') | (vector != 0) & (data.feat_dir == 'any'))
+        directionality_condition = ((vector < 0) & (data.feat_dir == 'pos') | (vector > 0) & (data.feat_dir == 'neg') | (vector != 0) & (data.feat_dir == 'any'))
         if f_type_str is not None:
             diff_index = np.where(directionality_condition & (data.feat_type == f_type_str) & (data.feat_mutable == 1))[0].tolist()
         else:

@@ -9,7 +9,7 @@ Imports
 import numpy as np
 import time
 
-def verify_feasibility(x,cf,mutable_feat,feat_type,feat_step):
+def verify_feasibility(x,cf,data):
     """
     Method that indicates whether the cf is a feasible counterfactual with respect to x and the feature mutability
     Input x: Instance of interest
@@ -21,13 +21,13 @@ def verify_feasibility(x,cf,mutable_feat,feat_type,feat_step):
     """
     toler = 0.000001
     feasibility = True
-    for i in range(len(feat_type)):
-        if feat_type[i] == 'bin':
+    for i in range(len(data.feat_type)):
+        if data.feat_type[i] == 'bin':
             if not np.isclose(cf[i], [0,1],atol=toler).any():
                 feasibility = False
                 break
-        elif feat_type[i] == 'num-ord':
-            possible_val = np.linspace(0,1,int(1/feat_step[i]+1),endpoint=True)
+        elif data.feat_type[i] == 'num-ord':
+            possible_val = np.linspace(0,1,int(1/data.feat_step[i]+1),endpoint=True)
             if not np.isclose(cf[i],possible_val,atol=toler).any():
                 feasibility = False
                 break  
@@ -35,7 +35,17 @@ def verify_feasibility(x,cf,mutable_feat,feat_type,feat_step):
             if cf[i] < 0-toler or cf[i] > 1+toler:
                 feasibility = False
                 break
-    if not np.array_equal(x[np.where(mutable_feat == 0)],cf[np.where(mutable_feat == 0)]):
+        vector = cf - x
+        if data.feat_dir[i] == 0 and vector[i] != 0:
+            feasibility = False
+            break
+        elif data.feat_dir[i] == 'pos' and vector[i] < 0:
+            feasibility = False
+            break
+        elif data.feat_dir[i] == 'neg' and vector[i] > 0:
+            feasibility = False
+            break
+    if not np.array_equal(x[np.where(data.feat_mutable == 0)],cf[np.where(data.feat_mutable == 0)]):
         feasibility = False
     return feasibility
 
@@ -50,7 +60,7 @@ def nn(x,x_label,data):
     start_time = time.time()
     nt_cf = None
     for i in data.train_sorted:
-        if i[2] != x_label and verify_feasibility(x,i[0],data.feat_mutable,data.feat_type,data.feat_step) and not np.array_equal(x,i[0]):
+        if i[2] != x_label and verify_feasibility(x,i[0],data) and not np.array_equal(x,i[0]):
             nt_cf = i[0]
             break
     if nt_cf is None:
@@ -73,7 +83,7 @@ def nn_model(prev_nn,x,x_label,data,model):
     """
     nt_cf = prev_nn
     for i in data.train_sorted:
-        if i[2] != x_label and model.predict(i[0].reshape(1,-1)) != x_label and verify_feasibility(x,i[0],data.feat_mutable,data.feat_type,data.feat_step) and not np.array_equal(x,i[0]):
+        if i[2] != x_label and model.predict(i[0].reshape(1,-1)) != x_label and verify_feasibility(x,i[0],data) and not np.array_equal(x,i[0]):
             nt_cf = i[0]
             break
     return nt_cf
